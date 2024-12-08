@@ -1,6 +1,6 @@
+
 package com.example.appdoctor.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,12 +19,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.appdoctor.data.model.Paciente
+import com.example.appdoctor.data.model.Ubigeo
 import com.example.appdoctor.ui.components.Header
 import com.example.appdoctor.ui.theme.PrimaryBlue
 import com.example.appdoctor.ui.theme.LightBlue
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(navController: NavController, viewModel: PersonaViewModel) {
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var dni by remember { mutableStateOf("") }
@@ -34,106 +37,142 @@ fun RegisterScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var usuario by remember { mutableStateOf("") }
-    var departamento by remember { mutableStateOf("") }
-    var provincia by remember { mutableStateOf("") }
-    var distrito by remember { mutableStateOf("") }
     var fechaNacimiento by remember { mutableStateOf("") }
     var edad by remember { mutableStateOf("") }
-    var tipo by remember { mutableStateOf("adulto") }
+    var tipo by remember { mutableStateOf("Regular") }
+
+    var ubigeos by remember { mutableStateOf(emptyList<Ubigeo>()) }
+    var departamentos by remember { mutableStateOf(emptyList<Ubigeo>()) }
+    var provincias by remember { mutableStateOf(emptyList<Ubigeo>()) }
+    var distritos by remember { mutableStateOf(emptyList<Ubigeo>()) }
+
+    var selectedDepartamento by remember { mutableStateOf<Ubigeo?>(null) }
+    var selectedProvincia by remember { mutableStateOf<Ubigeo?>(null) }
+    var selectedDistrito by remember { mutableStateOf<Ubigeo?>(null) }
+
+    var isLoading by remember { mutableStateOf(true) }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    val tipos = listOf("niño", "joven", "adulto", "adulto mayor")
+    LaunchedEffect(Unit) {
+        viewModel.fetchUbigeos { result ->
+            ubigeos = result
+            departamentos = ubigeos.distinctBy { it.idDepartamento }
+            isLoading = false
+        }
+    }
 
     Scaffold(
         topBar = {
-            Header(
-                title = "Nueva Cuenta",
-                onBackClick = { navController.popBackStack() }
-            )
+            Header(title = "Registrar Paciente", onBackClick = { navController.popBackStack() })
         },
         content = { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.TopCenter
-            ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     InputField("Nombre", nombre) { nombre = it }
                     InputField("Apellido", apellido) { apellido = it }
                     InputField("DNI", dni) { dni = it }
-                    DropdownField(
-                        label = "Género",
-                        selectedOption = genero,
-                        options = listOf("Femenino", "Masculino"),
-                        onOptionSelected = { genero = it }
-                    )
+                    DropdownField("Género", genero, listOf("Masculino", "Femenino")) { genero = it }
                     InputField("Dirección", direccion) { direccion = it }
                     InputField("Teléfono", telefono) { telefono = it }
                     InputField("Email", email) { email = it }
-
-                    // Campo para Fecha de Nacimiento
-                    InputField("Fecha de nacimiento", fechaNacimiento) { fechaNacimiento = it }
-
-                    // Campo para Edad
-                    InputField("Edad", edad) { edad = it }
-
-                    // Dropdown para Tipo
-                    DropdownField(
-                        label = "Tipo",
-                        selectedOption = tipo,
-                        options = tipos,
-                        onOptionSelected = { tipo = it }
-                    )
-
-                    PasswordField(password, passwordVisible,
+                    InputField("Usuario", usuario) { usuario = it }
+                    PasswordField(
+                        password = password,
+                        passwordVisible = passwordVisible,
                         onPasswordChange = { password = it },
                         onVisibilityChange = { passwordVisible = it }
                     )
+                    InputField("Fecha de Nacimiento (YYYY-MM-DD)", fechaNacimiento) { fechaNacimiento = it }
+                    InputField("Edad", edad) { edad = it }
 
-                    InputField("Usuario", usuario) { usuario = it }
-                    InputField("Departamento", departamento) { departamento = it }
-                    InputField("Provincia", provincia) { provincia = it }
-                    InputField("Distrito", distrito) { distrito = it }
+                    DropdownField(
+                        label = "Departamento",
+                        selectedOption = selectedDepartamento?.descDepartamento ?: "",
+                        options = departamentos.map { it.descDepartamento },
+                        onOptionSelected = { selected ->
+                            selectedDepartamento = departamentos.find { it.descDepartamento == selected }
+                            provincias = ubigeos.filter { it.idDepartamento == selectedDepartamento?.idDepartamento }
+                            selectedProvincia = null
+                            selectedDistrito = null
+                        }
+                    )
+                    DropdownField(
+                        label = "Provincia",
+                        selectedOption = selectedProvincia?.descProvincia ?: "",
+                        options = provincias.map { it.descProvincia },
+                        onOptionSelected = { selected ->
+                            selectedProvincia = provincias.find { it.descProvincia == selected }
+                            distritos = ubigeos.filter { it.idProvincia == selectedProvincia?.idProvincia }
+                            selectedDistrito = null
+                        }
+                    )
+                    DropdownField(
+                        label = "Distrito",
+                        selectedOption = selectedDistrito?.descDistrito ?: "",
+                        options = distritos.map { it.descDistrito },
+                        onOptionSelected = { selected ->
+                            selectedDistrito = distritos.find { it.descDistrito == selected }
+                        }
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
-
                     Button(
-                        onClick = { navController.navigate("login") },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
+                        onClick = {
+                            if (fechaNacimiento.isNotEmpty() && fechaNacimiento.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                                val paciente = Paciente(
+                                    nombres = nombre,
+                                    apellidos = apellido,
+                                    dni = dni,
+                                    genero = genero,
+                                    direccion = direccion,
+                                    telefono = telefono,
+                                    email = email,
+                                    usuario = usuario,
+                                    clave = password,
+                                    rolId = 2,
+                                    idDepartamento = (selectedDepartamento?.idDepartamento ?: 0).toInt(),
+                                    idProvincia = (selectedProvincia?.idProvincia ?: 0).toInt(),
+                                    idDistrito = (selectedDistrito?.idDistrito ?: 0).toInt(),
+                                    fechaNacimiento = fechaNacimiento, // Formato YYYY-MM-DD
+                                    edad = edad.toIntOrNull() ?: 0,
+                                    tipo = tipo
+                                )
+
+                                // Log detallado de los datos
+                                println("Datos enviados al backend (Paciente): ${paciente}")
+
+                                viewModel.registrarPaciente(paciente) { success ->
+                                    if (success) {
+                                        println("Paciente registrado correctamente.")
+                                        navController.navigate("login")
+                                    } else {
+                                        println("Error al registrar paciente.")
+                                    }
+                                }
+                            } else {
+                                println("Error: Fecha de nacimiento no válida o vacía. Asegúrate de usar el formato YYYY-MM-DD.")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "Registrar Usuario",
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
+                        Text("Registrar Paciente", color = Color.White)
                     }
 
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "or sign up with",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
-
-                    Text(
-                        text = "¿Ya tienes una cuenta? Iniciar sesión",
-                        fontSize = 14.sp,
-                        color = PrimaryBlue,
-                        modifier = Modifier.clickable { navController.navigate("login") }
-                    )
                 }
             }
         }
@@ -224,6 +263,7 @@ fun DropdownField(
         }
     }
 }
+
 
 @Composable
 fun PasswordField(

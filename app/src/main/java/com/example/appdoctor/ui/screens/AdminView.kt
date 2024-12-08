@@ -25,11 +25,29 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.appdoctor.R
 import com.example.appdoctor.ui.theme.PrimaryBlue
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun AdminView(navController: NavHostController) {
+fun AdminView(navController: NavHostController, viewModel: PersonaViewModel) {
     var selectedTab by remember { mutableStateOf("Doctor") }
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == "Paciente") {
+            viewModel.obtenerDetallesPacientes {}
+        } else if (selectedTab == "Doctor") {
+            viewModel.obtenerDetallesDoctores {}
+        }
+    }
+
+    val isLoading by remember {
+        derivedStateOf {
+            (viewModel.pacientes.isEmpty() && selectedTab == "Paciente") ||
+                    (viewModel.doctores.isEmpty() && selectedTab == "Doctor")
+        }
+    }
+    val pacientes by remember { derivedStateOf { viewModel.pacientes } }
+    val doctores by remember { derivedStateOf { viewModel.doctores } }
 
     Column(
         modifier = Modifier
@@ -37,7 +55,6 @@ fun AdminView(navController: NavHostController) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Fila de pestañas y búsqueda
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -73,34 +90,51 @@ fun AdminView(navController: NavHostController) {
             )
         }
 
-        // Mostrar la lista según la pestaña seleccionada
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (selectedTab == "Doctor") {
-                items(dummyDoctors) { doctor ->
-                    CustomDoctorCard(
-                        doctorName = doctor.name,
-                        specialty = doctor.specialty,
-                        imageRes = doctor.imageRes,
-                        onClick = { navController.navigate("doctorInfo/${doctor.id}") }
-                    )
-                }
-            } else {
-                items(dummyPatients) { patient ->
-                    CustomPatientCard(
-                        patientName = patient.name,
-                        age = patient.age,
-                        type = patient.type,
-                        imageRes = patient.imageRes
-                    )
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (selectedTab == "Doctor") {
+                    items(doctores) { doctor ->
+                        val imageRes = if (doctor.genero.equals("F", ignoreCase = true) || doctor.genero.equals("Femenino", ignoreCase = true)) {
+                            R.drawable.doc1
+                        } else {
+                            R.drawable.doc2
+                        }
+                        CustomDoctorCard(
+                            doctorName = "${doctor.nombres} ${doctor.apellidos}",
+                            specialty = doctor.especialidad,
+                            imageRes = imageRes,
+                            onClick = { navController.navigate("doctorInfo/${doctor.id}") }
+                        )
+                    }
+                } else if (selectedTab == "Paciente") {
+                    items(pacientes) { patient ->
+                        val imageRes = if (patient.genero.equals("F", ignoreCase = true) || patient.genero.equals("Femenino", ignoreCase = true)) {
+                            R.drawable.user2
+                        } else {
+                            R.drawable.user1
+                        }
+                        CustomPatientCard(
+                            patientName = "${patient.nombres} ${patient.apellidos}",
+                            age = patient.edad,
+                            type = patient.tipo,
+                            imageRes = imageRes
+                        )
+                    }
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun TabItem(icon: Int, title: String, isSelected: Boolean, onClick: () -> Unit) {
@@ -134,7 +168,7 @@ fun CustomDoctorCard(doctorName: String, specialty: String, imageRes: Int, onCli
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .clickable { onClick() }, // Navegar al hacer clic
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color(0xFFE6EDFB)),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -173,7 +207,6 @@ fun CustomDoctorCard(doctorName: String, specialty: String, imageRes: Int, onCli
         }
     }
 }
-
 
 @Composable
 fun CustomPatientCard(patientName: String, age: Int, type: String, imageRes: Int) {
@@ -220,4 +253,3 @@ fun CustomPatientCard(patientName: String, age: Int, type: String, imageRes: Int
         }
     }
 }
-

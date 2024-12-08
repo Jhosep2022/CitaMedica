@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +24,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.appdoctor.ui.components.Header
 import com.example.appdoctor.ui.theme.PrimaryBlue
-import androidx.compose.material3.*
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun ProfileScreen(navController: NavHostController, onBackClick: () -> Unit = {}) {
+fun ProfileScreen(
+    navController: NavHostController,
+    viewModel: PersonaViewModel,
+    onBackClick: () -> Unit = {}
+) {
     var showLogoutDialog by remember { mutableStateOf(false) } // Estado para mostrar el diálogo
+
+    // Obtener el usuario autenticado del ViewModel
+    val usuario = viewModel.usuarioAutenticado
 
     Scaffold(
         topBar = {
@@ -72,7 +80,7 @@ fun ProfileScreen(navController: NavHostController, onBackClick: () -> Unit = {}
 
             // Nombre del usuario
             Text(
-                text = "John Doe",
+                text = usuario?.nombres ?: "Usuario no disponible",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -87,27 +95,22 @@ fun ProfileScreen(navController: NavHostController, onBackClick: () -> Unit = {}
             ) {
                 ProfileOption(
                     icon = Icons.Default.Person,
-                    title = "Perfil",
+                    title = "Editar Perfil",
                     onClick = { navController.navigate("edit_profile") }
                 )
                 ProfileOption(
                     icon = Icons.Default.Settings,
-                    title = "Settings",
+                    title = "Configuraciones",
                     onClick = { navController.navigate("settings") }
                 )
                 ProfileOption(
                     icon = Icons.Default.Help,
-                    title = "Help",
+                    title = "Ayuda",
                     onClick = { /* Acción Help */ }
                 )
                 ProfileOption(
-                    icon = Icons.Default.Person,
-                    title = "Rol",
-                    onClick = { /* Acción Rol */ }
-                )
-                ProfileOption(
                     icon = Icons.Default.ExitToApp,
-                    title = "Logout",
+                    title = "Cerrar Sesión",
                     onClick = { showLogoutDialog = true } // Mostrar el cuadro de diálogo
                 )
             }

@@ -23,7 +23,14 @@ import com.example.appdoctor.R
 import com.example.appdoctor.ui.theme.PrimaryBlue
 
 @Composable
-fun HomeTopBar(role: String, navController: NavHostController, isMale: Boolean = true) {
+fun HomeTopBar(role: String, navController: NavHostController, gender: String) {
+    // Seleccionar la imagen de perfil basada en el género
+    val profileImage = when (gender.lowercase()) {
+        "m", "masculino" -> R.drawable.user1 // Imagen para género masculino
+        "f", "femenino" -> R.drawable.user2 // Imagen para género femenino
+        else -> R.drawable.user1 // Imagen predeterminada
+    }
+
     TopAppBar(
         title = {
             Row(
@@ -37,9 +44,7 @@ fun HomeTopBar(role: String, navController: NavHostController, isMale: Boolean =
                 ) {
                     // Imagen de perfil (de los recursos `drawable`)
                     Image(
-                        painter = painterResource(
-                            id = if (isMale) R.drawable.user1 else R.drawable.user2
-                        ),
+                        painter = painterResource(id = profileImage), // Imagen seleccionada dinámicamente
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(40.dp)
@@ -50,7 +55,7 @@ fun HomeTopBar(role: String, navController: NavHostController, isMale: Boolean =
                     // Saludo y rol
                     Column {
                         Text(
-                            text = "Hi, Welcome Back",
+                            text = "Hola, Bienvenido",
                             fontSize = 16.sp,
                             color = PrimaryBlue,
                             fontWeight = FontWeight.Bold

@@ -23,26 +23,35 @@ import com.example.appdoctor.ui.screens.RegisterScreen
 import com.example.appdoctor.ui.screens.ScheduleDetailsScreen
 import com.example.appdoctor.ui.screens.SettingsScreen
 import com.example.appdoctor.ui.screens.WelcomeScreen
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun Navigation(navController: NavHostController = rememberNavController()) {
+fun Navigation(
+    navController: NavHostController = rememberNavController(),
+    personaViewModel: PersonaViewModel
+) {
     var selectedTab by remember { mutableStateOf("Home") }
 
     NavHost(navController = navController, startDestination = "onboarding") {
         composable("onboarding") { OnboardingScreen(navController) }
         composable("welcome") { WelcomeScreen(navController) }
-        composable("login") { LoginScreen(navController) }
-        composable("register") { RegisterScreen(navController) }
+        composable("login") { LoginScreen(navController, personaViewModel) }
+        composable("register") { RegisterScreen(navController, personaViewModel) }
         composable("settings") { SettingsScreen(navController = navController) }
-        composable("addDoctor") { AddDoctorScreen(navController = navController) }
+        composable("addDoctor") {
+            AddDoctorScreen(navController = navController, viewModel = personaViewModel)
+        }
         composable("appointmentsDoctor") {
             AppointmentDoctorScreen(navController = navController,onBackClick = { navController.popBackStack() })
         }
         composable("home/{role}") { backStackEntry ->
             val role = backStackEntry.arguments?.getString("role") ?: "Invitado"
+            val gender = personaViewModel.usuarioAutenticado?.genero ?: "M" // Valor por defecto "M" si no está definido
             HomeScreen(
                 role = role,
+                gender = gender,
                 navController = navController,
+                personaViewModel = personaViewModel,
                 selectedTab = selectedTab,
                 onTabChange = { newTab -> selectedTab = newTab }
             )
@@ -50,18 +59,32 @@ fun Navigation(navController: NavHostController = rememberNavController()) {
         composable("profile") {
             ProfileScreen(
                 navController = navController,
+                viewModel = personaViewModel,
                 onBackClick = {
                     selectedTab = "Home"
                     navController.popBackStack()
                 }
             )
         }
+
         composable("edit_profile") {
             EditProfileScreen(
+                viewModel = personaViewModel,
                 onBackClick = { navController.popBackStack() },
-                onUpdateClick = { /* Acción para actualizar perfil */ }
+                onUpdateClick = { updatedPersona ->
+                    updatedPersona.id?.let { id ->
+                        personaViewModel.actualizarPersona(id, updatedPersona) { updated ->
+                            if (updated != null) {
+                                navController.popBackStack()
+                            }
+                        }
+                    } ?: run {
+                        println("Error: El ID es nulo, no se puede actualizar la persona.")
+                    }
+                }
             )
         }
+
         composable("changePassword") {
             ChangePasswordScreen(onBackClick = { navController.popBackStack() })
         }
@@ -74,12 +97,14 @@ fun Navigation(navController: NavHostController = rememberNavController()) {
             route = "doctorInfo/{doctorId}",
             arguments = listOf(navArgument("doctorId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val doctorId = backStackEntry.arguments?.getString("doctorId")
+            val doctorId = backStackEntry.arguments?.getString("doctorId") ?: ""
             DoctorInfoScreen(
-                doctorId = doctorId ?: "",
+                doctorId = doctorId,
+                viewModel = personaViewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }
+
 
         composable("doctorSchedule") {
             DoctorScheduleScreen(

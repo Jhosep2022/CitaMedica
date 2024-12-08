@@ -13,22 +13,25 @@ import androidx.navigation.NavHostController
 import com.example.appdoctor.R
 import com.example.appdoctor.ui.components.HomeBottomBar
 import com.example.appdoctor.ui.components.HomeTopBar
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
 fun HomeScreen(
     role: String,
     navController: NavHostController,
+    personaViewModel: PersonaViewModel,
     selectedTab: String,
-    onTabChange: (String) -> Unit
+    onTabChange: (String) -> Unit,
+    gender: String // Nuevo parámetro para el género
 ) {
     Scaffold(
-        topBar = { HomeTopBar(role = role, navController = navController) },
+        topBar = { HomeTopBar(role = role, navController = navController, gender = gender) },
         bottomBar = {
             // Mostrar BottomBar solo si el usuario no es Invitado
             if (role != "Invitado") {
                 HomeBottomBar(
                     selectedTab = selectedTab,
-                    role = role, // Asegúrate de pasar el rol aquí
+                    role = role,
                     onHomeClick = { onTabChange("Home") },
                     onChatClick = {
                         if (role != "Administrador" || role != "Invitado" || role != "Paciente") {
@@ -61,12 +64,14 @@ fun HomeScreen(
                 contentAlignment = Alignment.TopCenter
             ) {
                 when (role) {
-                    "Administrador" -> AdminView(navController = navController)
+                    "Administrador" -> AdminView(
+                        navController = navController,
+                        viewModel = personaViewModel
+                    )
                     "Doctor" -> DoctorView { doctorId ->
-                        // Navegar a la pantalla de información del doctor
                         navController.navigate("doctorInfo/$doctorId")
                     }
-                    "Paciente" -> PatientView(navController = navController) // Modificación aquí
+                    "Paciente" -> PatientView(navController = navController)
                     "Invitado" -> GuestView(navController = navController)
                     else -> Text(
                         text = "Rol no reconocido",
@@ -78,7 +83,6 @@ fun HomeScreen(
         }
     )
 }
-
 
 // Datos de prueba
 data class Doctor(

@@ -8,9 +8,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,115 +25,142 @@ import androidx.compose.ui.unit.sp
 import com.example.appdoctor.R
 import com.example.appdoctor.ui.components.Header
 import com.example.appdoctor.ui.theme.PrimaryBlue
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun DoctorInfoScreen(doctorId: String, onBackClick: () -> Unit) {
-    // Busca el doctor en la lista usando el ID proporcionado
-    val doctor = dummyDoctors.find { it.id == doctorId }
+fun DoctorInfoScreen(
+    doctorId: String,
+    viewModel: PersonaViewModel,
+    onBackClick: () -> Unit
+) {
+    var isLoading by remember { mutableStateOf(true) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        // Cabecera reutilizada
-        Header(title = "Doctor Info", onBackClick = onBackClick)
+    // Llama al ViewModel para obtener los detalles del doctor
+    LaunchedEffect(doctorId) {
+        viewModel.obtenerDetalleDoctor(doctorId) { success ->
+            isLoading = !success
+        }
+    }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Verifica si el doctor existe
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        val doctor = viewModel.doctorDetalle
         if (doctor != null) {
-            // Card principal
-            Card(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE6EDFB))
+                    .fillMaxSize()
+                    .background(Color.White)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Cabecera reutilizada
+                Header(title = "Doctor Info", onBackClick = onBackClick)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Card principal
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE6EDFB))
                 ) {
-                    // Imagen circular del doctor
-                    Image(
-                        painter = painterResource(doctor.imageRes),
-                        contentDescription = "Doctor Picture",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape) // Corrigiendo el uso de clip
-                            .background(Color.Gray, CircleShape)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Cargo y código del doctor en un estilo más claro
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "Cargo del Doctor",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp,
-                            color = PrimaryBlue,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "CDS-A213141",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                        // Selecciona la imagen según el género
+                        val imageRes = if (doctor.genero.equals("F", ignoreCase = true) || doctor.genero.equals("Femenino", ignoreCase = true)) {
+                            R.drawable.doc1
+                        } else {
+                            R.drawable.doc2
+                        }
+
+                        // Imagen circular del doctor
+                        Image(
+                            painter = painterResource(imageRes),
+                            contentDescription = "Doctor Picture",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .background(
-                                    color = Color(0xFF1E88E5),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(Color.Gray, CircleShape)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Cargo y código del doctor
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = doctor.cargo ?: "Sin cargo",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                color = PrimaryBlue,
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = doctor.codCmp,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier
+                                    .background(
+                                        color = Color(0xFF1E88E5),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Nombre del doctor
+                        Text(
+                            text = "${doctor.nombres} ${doctor.apellidos}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = PrimaryBlue,
+                            textAlign = TextAlign.Center
+                        )
+
+                        // Especialidad del doctor
+                        Text(
+                            text = doctor.especialidad,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp,
+                            color = Color.Gray,
                             textAlign = TextAlign.Center
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Nombre del doctor
-                    Text(
-                        text = doctor.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = PrimaryBlue,
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Especialidad del doctor
-                    Text(
-                        text = doctor.specialty,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
+                // Información de contacto
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    InfoRow(label = "Email", value = doctor.email)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    InfoRow(label = "Consultorio", value = doctor.consultorio)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    InfoRow(label = "Origen", value = doctor.origen ?: "No especificado")
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Información de contacto
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                InfoRow(label = "Teléfono", value = doctor.phone)
-                Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Email", value = doctor.email)
-                Spacer(modifier = Modifier.height(8.dp))
-                InfoRow(label = "Origen", value = doctor.origin)
-            }
         } else {
-            // Mensaje de error si el doctor no existe
+            // Mensaje de error si no se encuentra el doctor
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

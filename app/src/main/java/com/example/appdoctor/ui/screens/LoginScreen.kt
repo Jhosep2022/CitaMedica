@@ -21,12 +21,14 @@ import androidx.navigation.NavController
 import com.example.appdoctor.ui.components.Header
 import com.example.appdoctor.ui.theme.PrimaryBlue
 import com.example.appdoctor.ui.theme.LightBlue
+import com.example.appdoctor.ui.viewmodel.PersonaViewModel
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(navController: NavController, viewModel: PersonaViewModel) {
     var email by remember { mutableStateOf(TextFieldValue("")) }
     var password by remember { mutableStateOf(TextFieldValue("")) }
     var passwordVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -48,6 +50,7 @@ fun LoginScreen(navController: NavController) {
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Campo de Email
                     Text(
                         text = "Email",
                         fontSize = 16.sp,
@@ -72,6 +75,7 @@ fun LoginScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    // Campo de Contraseña
                     Text(
                         text = "Password",
                         fontSize = 16.sp,
@@ -105,43 +109,30 @@ fun LoginScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Botón Iniciar Sesión
                     Button(
-                        onClick = { navController.navigate("home/Administrador") },
+                        onClick = {
+                            viewModel.login(email.text, password.text) { success ->
+                                if (success) {
+                                    val usuario = viewModel.usuarioAutenticado
+                                    when (usuario?.rolId?.toInt()) {
+                                        1 -> navController.navigate("home/Administrador")
+                                        2 -> navController.navigate("home/Paciente")
+                                        3 -> navController.navigate("home/Doctor")
+                                        else -> errorMessage = "Rol desconocido"
+                                    }
+                                } else {
+                                    errorMessage = "Credenciales inválidas"
+                                }
+                            }
+                        },
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                     ) {
                         Text(
-                            text = "Iniciar Sesión Admin",
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
-                    }
-
-                    Button(
-                        onClick = { navController.navigate("home/Doctor") },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                    ) {
-                        Text(
-                            text = "Iniciar Sesión Doctor",
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
-                    }
-
-                    Button(
-                        onClick = { navController.navigate("home/Paciente") },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                    ) {
-                        Text(
-                            text = "Iniciar Sesión Paciente",
+                            text = "Iniciar Sesión",
                             fontSize = 16.sp,
                             color = Color.White
                         )
@@ -149,24 +140,37 @@ fun LoginScreen(navController: NavController) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Mensaje de error si hay problemas de login
+                    if (errorMessage.isNotEmpty()) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Ingresar como invitado
                     Text(
                         text = "o registrate con",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
-
                     Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
                         text = "ingresar como invitado",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryBlue,
-                        modifier = Modifier.clickable { navController.navigate("home/Invitado") }
+                        modifier = Modifier.clickable {
+                            navController.navigate("home/Invitado")
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // Registrarse
                     Text(
                         text = "¿No tienes una cuenta? ",
                         fontSize = 14.sp,
